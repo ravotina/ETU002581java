@@ -2,12 +2,12 @@
 @echo off
 REM definition des variable contenant le nom des dossier
 set /p nomAppli=Entrez le nom du dossier de l'application :
-set source="D:\kandra\fw\ETU002581"
-set "destination=D:\kandra\fw\Test"
-set "destinationTemp=D:\kandra\fw\Destination_result_classe"
+set source="D:\kandra\sprint1\ETU002581"
+set "destination=D:\kandra\sprint1\Test"
+set "destinationTemp=D:\kandra\sprint1\Temp"
 set "Temp=temp"
 set "lib=lib"
-set "src=Controllreur"
+set "src=Controlleur"
 
 
 echo le deployement est traiter dans le dossier "%destination%"
