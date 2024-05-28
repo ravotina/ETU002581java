@@ -31,7 +31,9 @@ public class FrontController extends HttpServlet {
         String urlAnoter = result_fin[1].replaceFirst("^/", "");
 
         if(mappinge.containsKey(urlAnoter)){
-            out.println("URL :"+ urlAnoter + " , Classe:  " + mappinge.get(urlAnoter).getClasse_name() + " et Methode:" + mappinge.get(urlAnoter).getMethodName());
+            out.print("</br>");
+            out.println(Utils.execute_fontion(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName()));
+            out.print("</br>");
         } else {
             out.println("URL :" + contextPath + " est introuvable");
         }
