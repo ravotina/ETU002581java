@@ -12,20 +12,26 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class FrontController extends HttpServlet {
 
+    boolean test = true;
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
+
         PrintWriter out = response.getWriter();
         try {
-            String dossier_cotroleur = this.getInitParameter("dossier_controleur");
+            if(test){
+                String dossier_cotroleur = this.getInitParameter("dossier_controleur");
+                out.println("tongasoa");
+                out.println(dossier_cotroleur);
+                List<Class<?>> liste_classe = Utils.getClassWithAnnotation(dossier_cotroleur);
 
-            out.println("tongasoa");
-            out.println(dossier_cotroleur);
-            List<Class<?>> liste_classe = Utils.getClassesInPackage(dossier_cotroleur);
+                for (Class<?> classe_name : liste_classe) {
+                    out.println("</br>");
+                    out.println(classe_name.getName());
+                    out.println("</br>");
+                }
 
-            out.println(liste_classe);
-            for (Class<?> classe_name : liste_classe) {
-                out.println(classe_name.getName());
+                test = false;
             }
         } catch(Exception e){
             out.println(e.getMessage());
