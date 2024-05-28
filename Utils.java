@@ -2,6 +2,7 @@ package fonction;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -11,6 +12,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.lang.reflect.Method;
 
 
 
@@ -67,6 +69,38 @@ public class Utils {
             }
         }
         return annotatedClasses;
+    }
+
+    public static String execute_fontion(String nom_classe, String nom_Methode) {
+        try {
+            Class<?> classe = Class.forName(nom_classe);
+
+            Object instance = classe.getDeclaredConstructor().newInstance();
+
+            Method methode = classe.getMethod(nom_Methode);
+
+            Object result = methode.invoke(instance);
+
+            return result.toString();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return "Erreur : Classe non trouvée";
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+            return "Erreur : Méthode non trouvée";
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+            return "Erreur : Impossible de créer une instance de la classe";
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return "Erreur : Accès illégal";
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            return "Erreur : Argument illégal";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Erreur lors de l'exécution de la méthode";
+        }
     }
 }    
    
