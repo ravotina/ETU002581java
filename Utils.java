@@ -71,7 +71,7 @@ public class Utils {
         return annotatedClasses;
     }
 
-    public static String execute_fontion(String nom_classe, String nom_Methode) {
+    public static Object execute_fontion(String nom_classe, String nom_Methode) {
         try {
             Class<?> classe = Class.forName(nom_classe);
 
@@ -81,7 +81,7 @@ public class Utils {
 
             Object result = methode.invoke(instance);
 
-            return result.toString();
+            return result;
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             return "Erreur : Classe non trouvée";
@@ -100,6 +100,16 @@ public class Utils {
         } catch (Exception e) {
             e.printStackTrace();
             return "Erreur lors de l'exécution de la méthode";
+        }
+    }
+
+    public static int testReturnType(Object obj) {
+        if (obj instanceof ModelView) {
+            return 1;
+        } else if (obj instanceof String) {
+            return 2;
+        } else {
+            return 3;
         }
     }
 }    
