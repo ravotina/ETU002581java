@@ -25,7 +25,7 @@ public class Mapping {
     public String getMethodName() {
         return methodName;
     }
-
+// 
     // Méthode setter pour methodName
     public void setMethodName(String methodName) {
         this.methodName = methodName;

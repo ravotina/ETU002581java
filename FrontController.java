@@ -1,3 +1,4 @@
+
 package controlleur;
 
 import fonction.*;
@@ -7,6 +8,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -21,7 +23,7 @@ public class FrontController extends HttpServlet {
     // Définition de l'exception personnalisée
     public class UrlAlreadyExistsException extends Exception {
         public UrlAlreadyExistsException(String message) {
-            //super(message);
+            super(message);
         }
     }
 
@@ -32,14 +34,51 @@ public class FrontController extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         try {
+            // String chemin_url = request.getRequestURL().toString();
+            // String contextPath = request.getContextPath(); // Ex: /YourAppName
+            // String[] result_fin = chemin_url.split(contextPath);
+            // String urlAnoter = result_fin[1].replaceFirst("^/", "");
+
+           
+            // out.println("================================================");
+
+            // String baseUrl = chemin_url; //.split("\\?")[1];
+
+            // out.println(baseUrl);
+
+            // out.println("================================================");
+
             String chemin_url = request.getRequestURL().toString();
             String contextPath = request.getContextPath(); // Ex: /YourAppName
+            String queryString = request.getQueryString(); // Ex: ville=105
             String[] result_fin = chemin_url.split(contextPath);
             String urlAnoter = result_fin[1].replaceFirst("^/", "");
 
+            // Enlever le texte après "?" s'il existe
+            String baseUrl = urlAnoter.split("\\?")[0];
+
+            // Déclarer une Map pour les paramètres
+            Map<String, String> paramMap = new HashMap<>();
+
+            if ("GET".equalsIgnoreCase(request.getMethod())) {
+                // Extraire les paramètres de l'URL en tant que Map pour GET
+                if (queryString != null) {
+                    String[] params = queryString.split("&");
+                    for (String param : params) {
+                        String[] keyValue = param.split("=");
+                        if (keyValue.length == 2) {
+                            paramMap.put(keyValue[0], keyValue[1]);
+                        }
+                    }
+                }
+            } else if ("POST".equalsIgnoreCase(request.getMethod())) {
+                // Extraire les paramètres de la requête POST en tant que Map
+                request.getParameterMap().forEach((key, values) -> paramMap.put(key, values[0]));
+            }
+
             try {
                 out.print("</br>");
-                Object resultat = Utils.execute_fontion(mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName());
+                Object resultat = Utils.executeFontion(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName());
                 if (Utils.testReturnType(resultat) == 1) {
                     try {
                         ModelView result_model_view = (ModelView) resultat;
@@ -66,14 +105,14 @@ public class FrontController extends HttpServlet {
             } catch (UrlAlreadyExistsException e) {
                 out.println("<p style='color:red;'>Error: " + e.getMessage() + "</p>");
                 System.err.println(e.getMessage());
-                System.out.println("UrlAlreadyExistsException eurrer");
+                System.out.println("UrlAlreadyExistsException erreur");
                 e.printStackTrace(System.err);
             } catch (Exception e) {
                 log("Error executing function", e);
                 out.println(e.getMessage());
                 System.err.println(e.getMessage());
                 out.println("URL non reconnue: " + chemin_url);
-                System.out.println("Exception eurrer");
+                System.out.println("Exception erreur");
                 e.printStackTrace(System.err);
             }
         } finally {
@@ -98,7 +137,7 @@ public class FrontController extends HttpServlet {
                         // Vérifier si l'URL existe déjà dans la map
                         System.out.println("Liste key: " + url);
                         if (mappinge.containsKey(url)) {
-                            // Afficher en terminale
+                            // Afficher en terminal
                             System.err.println("Duplicate URL detected: " + url);
                             // Lancer une exception pour la gestion interne
                             throw new UrlAlreadyExistsException("Duplicate URL detected: " + url);
@@ -138,53 +177,3 @@ public class FrontController extends HttpServlet {
 }
 
 
-
-
-
- // public void init() throws ServletException {
-    //     String dossier_controleur = this.getInitParameter("dossier_controleur");
-    //     try{
-    //         List<Class<?>> liste_classe = Utils.getClassWithAnnotation(dossier_controleur);
-
-    //         for(Class<?> classe_name : liste_classe) {
-    //             Method [] liste_methode = classe_name.getDeclaredMethods();
-    //             for(Method methode : liste_methode){
-    //                 if(methode.isAnnotationPresent(Get.class)){
-    //                     String url = methode.getAnnotation(Get.class).value();
-    //                     mappinge.put(url , new Mapping(classe_name.getName() , methode.getName()));
-    //                 }
-    //             }
-    //         }
-
-    //     } catch (Exception e){
-    //             System.out.println(e.getMessage());
-    //     }
-    // }
-
-
-
-     // if(mappinge.containsKey(urlAnoter)){
-        //     out.print("</br>");
-        //     Object resultat =  Utils.execute_fontion(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName());
-        //     if (Utils.testReturnType(resultat) == 1) {
-        //         try {
-        //             ModelView result_model_view = (ModelView) resultat;
-        //             for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
-        //                 request.setAttribute(entry.getKey(), entry.getValue());
-        //             }
-        //             String url = result_model_view.getUrl();
-        //             out.print(url);
-        //             RequestDispatcher dispatcher = request.getRequestDispatcher("/web/"+url);
-        //             dispatcher.forward(request, response);
-        //         } catch (Exception e) {
-        //             out.println(e.getMessage());
-        //         }
-        //     } else if(Utils.testReturnType(resultat)==2){
-        //         out.print(resultat.toString());
-        //     } else {
-        //         out.println("type de return nom reconnu");
-        //     }
-        //     out.print("</br>");
-        // } else {
-        //     out.println("URL :" + contextPath + " est introuvable");
-        // }
