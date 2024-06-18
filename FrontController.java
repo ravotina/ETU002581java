@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.thoughtworks.paranamer.AdaptiveParanamer;
+import com.thoughtworks.paranamer.Paranamer;
+
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -34,7 +37,6 @@ public class FrontController extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         try {
-          
 
             String chemin_url = request.getRequestURL().toString();
             String contextPath = request.getContextPath(); // Ex: /YourAppName
