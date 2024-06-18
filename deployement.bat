@@ -2,9 +2,9 @@
 @echo off
 REM definition des variable contenant le nom des dossier
 set /p nomAppli=Entrez le nom du dossier de l'application :
-set source="D:\kandra\sprint5\ETU002581"
-set "destination=D:\kandra\sprint5\Test"
-set "destinationTemp=D:\kandra\sprint5\Temp"
+set source="D:\kandra\sprint6\ETU002581"
+set "destination=D:\kandra\sprint6\Test"
+set "destinationTemp=D:\kandra\sprint6\Temp"
 set "Temp=temp"
 set "lib=lib"
 set "src=Controlleur"
@@ -27,7 +27,7 @@ if exist "%destinationTemp%\%Temp%" (
 REM ########## COMPILATION DES FICHIER JAVA ##########################
 set source_jar=%source%\%lib%\*
 
-javac -cp %source_jar% -d %destinationTemp%\%Temp% %source%\%src%\*.java
+javac -g -cp %source_jar% -d %destinationTemp%\%Temp% %source%\%src%\*.java
 
 REM ######### COMPRESSER LE FICHIER DOSSIER Temp EN .war
 set nameFileWar=%src%.jar

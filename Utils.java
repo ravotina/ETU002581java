@@ -4,25 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.net.JarURLConnection;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.lang.reflect.Method;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-
+import com.thoughtworks.paranamer.AdaptiveParanamer;
+import com.thoughtworks.paranamer.Paranamer;
 
 public class Utils {
 
-  
     // Méthode pour obtenir la liste des classes dans un package
     public static List<Class<?>> getClassesInPackage(String packageName) throws IOException, ClassNotFoundException {
         List<Class<?>> classes = new ArrayList<>();
@@ -35,7 +27,7 @@ public class Utils {
                 // Si le package est un répertoire de fichiers
                 File directory = new File(resource.getFile());
                 classes.addAll(findClassesInDirectory(directory, packageName));
-            } 
+            }
         }
         return classes;
     }
@@ -57,8 +49,8 @@ public class Utils {
             } else if (file.getName().endsWith(".class")) {
                 // Charger la classe et l'ajouter à la liste
                 String className = packageName + "." + file.getName().substring(0, file.getName().length() - 6);
-                Class<?> myclass = Class.forName(className);
-                classes.add(myclass);
+                Class<?> myClass = Class.forName(className);
+                classes.add(myClass);
             }
         }
         return classes;
@@ -96,6 +88,13 @@ public class Utils {
             Parameter[] parameters = targetMethod.getParameters();
             Object[] parameterValues = new Object[parameters.length];
 
+            // Utilisation de Paranamer pour obtenir les noms des paramètres si nécessaire
+            Paranamer paranamer = new AdaptiveParanamer();
+
+            System.out.println("Methode:");
+            System.out.println(targetMethod);
+            String[] parameterNames = paranamer.lookupParameterNames(targetMethod);
+
             for (int i = 0; i < parameters.length; i++) {
                 Param paramAnnotation = parameters[i].getAnnotation(Param.class);
                 if (paramAnnotation != null) {
@@ -103,7 +102,9 @@ public class Utils {
                     String paramValue = paramMap.get(paramName);
                     parameterValues[i] = convertParameter(paramValue, parameters[i].getType());
                 } else {
-                    parameterValues[i] = null;
+                    String paramValue = paramMap.get(parameterNames[i]);
+                    parameterValues[i] = convertParameter(paramValue, parameters[i].getType());
+
                 }
             }
 
@@ -127,7 +128,6 @@ public class Utils {
         }
     }
 
-
     private static Object convertParameter(String value, Class<?> type) {
         if (type == int.class || type == Integer.class) {
             return Integer.parseInt(value);
@@ -140,8 +140,6 @@ public class Utils {
         }
     }
 
-    // Méthode testReturnType (code existant ici) ...
-
     public static int testReturnType(Object obj) {
         if (obj instanceof ModelView) {
             return 1;
@@ -151,5 +149,4 @@ public class Utils {
             return 3;
         }
     }
-}    
-   
+}
