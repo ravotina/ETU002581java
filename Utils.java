@@ -3,6 +3,7 @@ package fonction;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -10,9 +11,12 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.lang.reflect.Method;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 
 
@@ -71,17 +75,40 @@ public class Utils {
         return annotatedClasses;
     }
 
-    public static Object execute_fontion(String nom_classe, String nom_Methode) {
+    public static Object executeFontion(Map<String, String> paramMap, String nomClasse, String nomMethode) {
         try {
-            Class<?> classe = Class.forName(nom_classe);
-
+            Class<?> classe = Class.forName(nomClasse);
             Object instance = classe.getDeclaredConstructor().newInstance();
+            Method[] methods = classe.getDeclaredMethods();
+            Method targetMethod = null;
 
-            Method methode = classe.getMethod(nom_Methode);
+            for (Method method : methods) {
+                if (method.getName().equals(nomMethode)) {
+                    targetMethod = method;
+                    break;
+                }
+            }
 
-            Object result = methode.invoke(instance);
+            if (targetMethod == null) {
+                throw new NoSuchMethodException("Méthode non trouvée : " + nomMethode);
+            }
 
-            return result;
+            Parameter[] parameters = targetMethod.getParameters();
+            Object[] parameterValues = new Object[parameters.length];
+
+            for (int i = 0; i < parameters.length; i++) {
+                Param paramAnnotation = parameters[i].getAnnotation(Param.class);
+                if (paramAnnotation != null) {
+                    String paramName = paramAnnotation.name();
+                    String paramValue = paramMap.get(paramName);
+                    parameterValues[i] = convertParameter(paramValue, parameters[i].getType());
+                } else {
+                    parameterValues[i] = null;
+                }
+            }
+
+            return targetMethod.invoke(instance, parameterValues);
+
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             return "Erreur : Classe non trouvée";
@@ -94,14 +121,26 @@ public class Utils {
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             return "Erreur : Accès illégal";
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            return "Erreur : Argument illégal";
         } catch (Exception e) {
             e.printStackTrace();
             return "Erreur lors de l'exécution de la méthode";
         }
     }
+
+
+    private static Object convertParameter(String value, Class<?> type) {
+        if (type == int.class || type == Integer.class) {
+            return Integer.parseInt(value);
+        } else if (type == double.class || type == Double.class) {
+            return Double.parseDouble(value);
+        } else if (type == boolean.class || type == Boolean.class) {
+            return Boolean.parseBoolean(value);
+        } else {
+            return value;
+        }
+    }
+
+    // Méthode testReturnType (code existant ici) ...
 
     public static int testReturnType(Object obj) {
         if (obj instanceof ModelView) {
