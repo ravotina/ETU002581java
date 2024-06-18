@@ -34,19 +34,7 @@ public class FrontController extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         try {
-            // String chemin_url = request.getRequestURL().toString();
-            // String contextPath = request.getContextPath(); // Ex: /YourAppName
-            // String[] result_fin = chemin_url.split(contextPath);
-            // String urlAnoter = result_fin[1].replaceFirst("^/", "");
-
-           
-            // out.println("================================================");
-
-            // String baseUrl = chemin_url; //.split("\\?")[1];
-
-            // out.println(baseUrl);
-
-            // out.println("================================================");
+          
 
             String chemin_url = request.getRequestURL().toString();
             String contextPath = request.getContextPath(); // Ex: /YourAppName
