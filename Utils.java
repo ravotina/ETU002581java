@@ -2,10 +2,10 @@ package fonction;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -67,78 +67,101 @@ public class Utils {
         return annotatedClasses;
     }
 
+
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     public static Object executeFontion(Map<String, String> paramMap, String nomClasse, String nomMethode) {
-        try {
-            Class<?> classe = Class.forName(nomClasse);
-            Object instance = classe.getDeclaredConstructor().newInstance();
-            Method[] methods = classe.getDeclaredMethods();
-            Method targetMethod = null;
+    try {
+        Class<?> classe = Class.forName(nomClasse);
+        Object instance = classe.getDeclaredConstructor().newInstance();
 
-            for (Method method : methods) {
-                if (method.getName().equals(nomMethode)) {
-                    targetMethod = method;
-                    break;
+        Method[] methods = classe.getDeclaredMethods();
+        Method targetMethod = null;
+
+        for (Method method : methods) {
+            if (method.getName().equals(nomMethode)) {
+                targetMethod = method;
+                break;
+            }
+        }
+
+        if (targetMethod == null) {
+            throw new NoSuchMethodException("Méthode non trouvée : " + nomMethode);
+        }
+
+        Parameter[] parameters = targetMethod.getParameters();
+        List<Object> parameterValues = new ArrayList<>();
+
+        for (Parameter parameter : parameters) {
+            Class<?> paramType = parameter.getType();
+            Object paramInstance = paramType.getDeclaredConstructor().newInstance();
+            Field[] fields = paramType.getDeclaredFields();
+            for (Field field : fields) {
+                String paramName = field.getName();
+                if (paramMap.containsKey(paramName)) {
+                    Method setMethod = findSetterMethod(paramType, field);
+
+                    if (setMethod != null) {
+                        setMethod.invoke(paramInstance, convertParameterValue(paramMap.get(paramName), field.getType()));
+
+                        System.out.println("==========================");
+                        System.out.println(setMethod.getName());
+                        System.out.println("==========================");
+                    }
                 }
             }
+            parameterValues.add(paramInstance);
+        }
 
-            if (targetMethod == null) {
-                throw new NoSuchMethodException("Méthode non trouvée : " + nomMethode);
-            }
+        // Affichage des valeurs des paramètres pour le débogage
+        System.out.println("Paramètres pour la méthode : " + targetMethod.getName());
+        for (Object paramValue : parameterValues) {
+            System.out.println(paramValue);
+        }
 
-            Parameter[] parameters = targetMethod.getParameters();
-            Object[] parameterValues = new Object[parameters.length];
+        Object result = targetMethod.invoke(instance, parameterValues.toArray());
+        return result;
 
-            // Utilisation de Paranamer pour obtenir les noms des paramètres si nécessaire
-            Paranamer paranamer = new AdaptiveParanamer();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "Erreur lors de l'exécution de la méthode : " + e.getMessage();
+    }
+}
 
-            System.out.println("Methode:");
-            System.out.println(targetMethod);
-            String[] parameterNames = paranamer.lookupParameterNames(targetMethod);
-
-            for (int i = 0; i < parameters.length; i++) {
-                Param paramAnnotation = parameters[i].getAnnotation(Param.class);
-                if (paramAnnotation != null) {
-                    String paramName = paramAnnotation.name();
-                    String paramValue = paramMap.get(paramName);
-                    parameterValues[i] = convertParameter(paramValue, parameters[i].getType());
-                } else {
-                    String paramValue = paramMap.get(parameterNames[i]);
-                    parameterValues[i] = convertParameter(paramValue, parameters[i].getType());
-
-                }
-            }
-
-            return targetMethod.invoke(instance, parameterValues);
-
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            return "Erreur : Classe non trouvée";
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-            return "Erreur : Méthode non trouvée";
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-            return "Erreur : Impossible de créer une instance de la classe";
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-            return "Erreur : Accès illégal";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Erreur lors de l'exécution de la méthode";
+private static Method findSetterMethod(Class<?> clazz, Field field) {
+    String setterName = "set" + capitalize(field.getName());
+    Method[] methods = clazz.getMethods();
+    for (Method method : methods) {
+        if (method.getName().equals(setterName) && method.getParameterCount() == 1 && method.getParameterTypes()[0].equals(field.getType())) {
+            return method;
         }
     }
+    return null;
+}
 
-    private static Object convertParameter(String value, Class<?> type) {
-        if (type == int.class || type == Integer.class) {
-            return Integer.parseInt(value);
-        } else if (type == double.class || type == Double.class) {
-            return Double.parseDouble(value);
-        } else if (type == boolean.class || type == Boolean.class) {
-            return Boolean.parseBoolean(value);
-        } else {
-            return value;
-        }
+private static String capitalize(String str) {
+    if (str == null || str.isEmpty()) {
+        return str;
     }
+    return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+}
+
+private static Object convertParameterValue(String value, Class<?> type) {
+    if (type == String.class) {
+        return value;
+    } else if (type == Integer.class || type == int.class) {
+        return Integer.parseInt(value);
+    } else if (type == Double.class || type == double.class) {
+        return Double.parseDouble(value);
+    } else if (type == Boolean.class || type == boolean.class) {
+        return Boolean.parseBoolean(value);
+    } else {
+        throw new IllegalArgumentException("Type de paramètre non supporté : " + type.getName());
+    }
+}
+
 
     public static int testReturnType(Object obj) {
         if (obj instanceof ModelView) {
