@@ -2,9 +2,9 @@
 @echo off
 REM definition des variable contenant le nom des dossier
 set /p nomAppli=Entrez le nom du dossier de l'application :
-set source="D:\kandra\sprint7\ETU002581"
-set "destination=D:\kandra\sprint7\Test"
-set "destinationTemp=D:\kandra\sprint7\Temp"
+set source="D:\kandra\sprint8\ETU002581"
+set "destination=D:\kandra\sprint8\Test"
+set "destinationTemp=D:\kandra\sprint8\Temp"
 set "Temp=temp"
 set "lib=lib"
 set "src=Controlleur"
