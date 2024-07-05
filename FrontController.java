@@ -68,7 +68,7 @@ public class FrontController extends HttpServlet {
 
             try {
                 out.print("</br>");
-                Object resultat = Utils.executeFontion(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName());
+                Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                 if (Utils.testReturnType(resultat) == 1) {
                     try {
                         ModelView result_model_view = (ModelView) resultat;
