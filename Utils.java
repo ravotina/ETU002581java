@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import com.google.gson.Gson;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -334,5 +335,37 @@ private static int test_type( Class<?> type) {
         } else {
             return 3;
         }
+    }
+
+
+    public static String convertirEnJson(String nomClasse, String nomMethode ,  Object objet ) {
+
+        String valeur = null;
+        try {
+
+            // Création d'un objet Gson
+            Class<?> classe = Class.forName(nomClasse);
+
+            Method[] methods = classe.getDeclaredMethods();
+                Method targetMethod = null;
+
+                for (Method method : methods) {
+                    if (method.getName().equals(nomMethode)) {
+                        if(method.isAnnotationPresent(Api.class)){
+                            Gson gson = new Gson();
+            
+                            // Transformation de l'objet en JSON
+                            valeur = gson.toJson(objet);
+                        } else {
+                            valeur = "tsia";
+                        }
+                    }
+            }
+            
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        
+        return valeur;
     }
 }
