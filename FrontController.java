@@ -69,6 +69,7 @@ public class FrontController extends HttpServlet {
             }
 
             try {
+                int signe = 0;
                 out.print("</br>");
                 Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                 if (Utils.testReturnType(resultat) == 1) {
@@ -78,14 +79,18 @@ public class FrontController extends HttpServlet {
                             request.setAttribute(entry.getKey(), entry.getValue());
                             if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
                                 out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
-                                break;
+                                signe = 1;
+                                //break;
                             }
                         }
-                        //String url = result_model_view.getUrl();
+                        String url = result_model_view.getUrl();
                         //out.print(url);
                         //out.print("==========resulat model view==========");
-                        RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
-                        dispatcher.forward(request, response);
+                        if (signe==0) {
+                            RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
+                            dispatcher.forward(request, response);
+                        }
+                        
                     } catch (Exception e) {
                         log("Error processing ModelView", e);
                         out.println(e.getMessage());
