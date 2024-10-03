@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+//import com.google.gson.*;
+
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
@@ -67,6 +69,7 @@ public class FrontController extends HttpServlet {
             }
 
             try {
+                int signe = 0;
                 out.print("</br>");
                 Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                 if (Utils.testReturnType(resultat) == 1) {
@@ -74,17 +77,27 @@ public class FrontController extends HttpServlet {
                         ModelView result_model_view = (ModelView) resultat;
                         for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
                             request.setAttribute(entry.getKey(), entry.getValue());
+                            if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
+                                out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
+                                signe = 1;
+                                //break;
+                            }
                         }
                         String url = result_model_view.getUrl();
-                        out.print(url);
-                        RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
-                        dispatcher.forward(request, response);
+                        //out.print(url);
+                        //out.print("==========resulat model view==========");
+                        if (signe==0) {
+                            RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
+                            dispatcher.forward(request, response);
+                        }
+                        
                     } catch (Exception e) {
                         log("Error processing ModelView", e);
                         out.println(e.getMessage());
                     }
                 } else if (Utils.testReturnType(resultat) == 2) {
-                    out.println(resultat.toString());
+                    //out.println(resultat.toString());
+                    out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , resultat));
                 } else {
                     out.println("</br>");
                     out.println("type de return non reconnu");
@@ -138,7 +151,6 @@ public class FrontController extends HttpServlet {
                     }
                 }
             }
-
         } catch (UrlAlreadyExistsException e) {
             // Gérer l'exception de doublon d'URL sans la relancer
             log("Duplicate URL detected: " + e.getMessage());
