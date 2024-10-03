@@ -25,6 +25,7 @@ public class FrontController extends HttpServlet {
 
     HashMap<String, Mapping> mappinge = new HashMap<>();
 
+
     // Définition de l'exception personnalisée
     public class UrlAlreadyExistsException extends Exception {
         public UrlAlreadyExistsException(String message) {
@@ -35,7 +36,7 @@ public class FrontController extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-
+        
         PrintWriter out = response.getWriter();
 
         try {
@@ -49,10 +50,13 @@ public class FrontController extends HttpServlet {
             // Enlever le texte après "?" s'il existe
             String baseUrl = urlAnoter.split("\\?")[0];
 
+            String metho_arriver = "";
+
             // Déclarer une Map pour les paramètres
             Map<String, String> paramMap = new HashMap<>();
 
             if ("GET".equalsIgnoreCase(request.getMethod())) {
+                metho_arriver = "Get";
                 // Extraire les paramètres de l'URL en tant que Map pour GET
                 if (queryString != null) {
                     String[] params = queryString.split("&");
@@ -65,45 +69,59 @@ public class FrontController extends HttpServlet {
                 }
             } else if ("POST".equalsIgnoreCase(request.getMethod())) {
                 // Extraire les paramètres de la requête POST en tant que Map
+                metho_arriver = "Post";
                 request.getParameterMap().forEach((key, values) -> paramMap.put(key, values[0]));
             }
 
             try {
-                int signe = 0;
                 out.print("</br>");
-                Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
-                if (Utils.testReturnType(resultat) == 1) {
-                    try {
-                        ModelView result_model_view = (ModelView) resultat;
-                        for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
-                            request.setAttribute(entry.getKey(), entry.getValue());
-                            if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
-                                out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
-                                signe = 1;
-                                //break;
+                int signe = 0;
+                if(mappinge.get(urlAnoter).getVerbe()== metho_arriver){
+                    Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
+                    if (Utils.testReturnType(resultat) == 1) {
+                        try {
+                            ModelView result_model_view = (ModelView) resultat;
+                            for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
+                                request.setAttribute(entry.getKey(), entry.getValue());
+                                if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
+                                    out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
+                                    signe = 1;
+                                }
                             }
+
+                            if(signe==0){
+                                String url = result_model_view.getUrl();
+                                //out.print(url);
+                                //out.print("==========resulat model view==========");
+                                RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
+                                dispatcher.forward(request, response);
+                            }
+                            
+                        } catch (Exception e) {
+                            log("Error processing ModelView", e);
+                            out.println(e.getMessage());
                         }
-                        String url = result_model_view.getUrl();
-                        //out.print(url);
-                        //out.print("==========resulat model view==========");
-                        if (signe==0) {
-                            RequestDispatcher dispatcher = request.getRequestDispatcher("/web/" + url);
-                            dispatcher.forward(request, response);
-                        }
-                        
-                    } catch (Exception e) {
-                        log("Error processing ModelView", e);
-                        out.println(e.getMessage());
+                    } else if (Utils.testReturnType(resultat) == 2) {
+                        //out.println(resultat.toString());
+                        out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , resultat));
+                    } else {
+                        out.println("</br>");
+                        out.println("type de return non reconnu");
+                        out.println("</br>");
+                        throw new UrlAlreadyExistsException("type de return non reconnu");
                     }
-                } else if (Utils.testReturnType(resultat) == 2) {
-                    //out.println(resultat.toString());
-                    out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , resultat));
+
                 } else {
+                    out.println("EURREUR");
                     out.println("</br>");
-                    out.println("type de return non reconnu");
+                    out.println("Methode du fonction : ");
+                    out.println(mappinge.get(urlAnoter).getVerbe());
                     out.println("</br>");
-                    throw new UrlAlreadyExistsException("type de return non reconnu");
+                    out.println("</br>");
+                    out.println("Methode du Formulaire : ");
+                    out.println(metho_arriver);
                 }
+
                 out.print("</br>");
             } catch (UrlAlreadyExistsException e) {
                 out.println("<p style='color:red;'>Error: " + e.getMessage() + "</p>");
@@ -134,20 +152,32 @@ public class FrontController extends HttpServlet {
             for (Class<?> classe_name : liste_classe) {
                 Method[] liste_methode = classe_name.getDeclaredMethods();
                 for (Method methode : liste_methode) {
-                    if (methode.isAnnotationPresent(Get.class)) {
-                        String url = methode.getAnnotation(Get.class).value();
+                    if (methode.isAnnotationPresent(URL.class)) {
+                        String url = methode.getAnnotation(URL.class).value();
 
-                        // Vérifier si l'URL existe déjà dans la map
-                        System.out.println("Liste key: " + url);
-                        if (mappinge.containsKey(url)) {
-                            // Afficher en terminal
-                            System.err.println("Duplicate URL detected: " + url);
-                            // Lancer une exception pour la gestion interne
-                            throw new UrlAlreadyExistsException("Duplicate URL detected: " + url);
-                        }
+                            System.out.println("Liste key: " + url);
+                            if (!mappinge.containsKey(url)) {
 
-                        // Ajouter l'URL à la map
-                        mappinge.put(url, new Mapping(classe_name.getName(), methode.getName()));
+                                if(methode.isAnnotationPresent(Post.class)){
+
+                                    // Ajouter l'URL à la map
+                                    mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Post"));
+
+                                }else if(methode.isAnnotationPresent(Get.class)) {
+                                    // Ajouter l'URL à la map
+                                    mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Get"));
+
+                                } else {
+                                    // Ajouter l'URL à la map
+                                    mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Get"));
+                                }
+                            } else {
+                       
+                                // Afficher en terminal
+                                System.err.println("Duplicate URL detected: " + url);
+                                // Lancer une exception pour la gestion interne
+                                throw new UrlAlreadyExistsException("Duplicate URL detected: " + url);
+                            }
                     }
                 }
             }
