@@ -21,9 +21,18 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.Set; 
+import java.util.HashSet;
+
 public class FrontController extends HttpServlet {
 
     HashMap<String, Mapping> mappinge = new HashMap<>();
+
+
+
+    //HashMap<String, Mapping> mappinge_execute = new HashMap<>();
+
+
 
 
     // Définition de l'exception personnalisée
@@ -71,12 +80,24 @@ public class FrontController extends HttpServlet {
                 // Extraire les paramètres de la requête POST en tant que Map
                 metho_arriver = "Post";
                 request.getParameterMap().forEach((key, values) -> paramMap.put(key, values[0]));
+                urlAnoter = urlAnoter+"1";
             }
 
             try {
                 out.print("</br>");
                 int signe = 0;
-                if(mappinge.get(urlAnoter).getVerbe()== metho_arriver){
+                // Recherche de la méthode correspondante dans `mappinge`
+                //mappinge_execute.clear();
+                //for (String key : mappinge.keySet()) {
+                  //  System.out.println("mitovy v" + key +" sy ny url : " + urlAnoter + " ary ny "+ mappinge.get(key).getVerbe() +" sy ny "+ metho_arriver);
+                    //if (key.equals(urlAnoter) && mappinge.get(key).getVerbe().equals(metho_arriver)) {
+                    //    System.out.println("mitovy ireto =======: " + key +" sy ny url : " + urlAnoter + " ary ny "+ mappinge.get(key).getVerbe() +" sy ny "+ metho_arriver);
+                    //    mappinge_execute.put(key, mappinge.get(key));
+                    //    break; // Sortir de la boucle dès qu'on trouve une correspondance
+                    //}
+               // }
+
+                if(mappinge.get(urlAnoter).getVerbe() == metho_arriver){
                     Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                     if (Utils.testReturnType(resultat) == 1) {
                         try {
@@ -151,6 +172,8 @@ public class FrontController extends HttpServlet {
 
             for (Class<?> classe_name : liste_classe) {
                 Method[] liste_methode = classe_name.getDeclaredMethods();
+                Set<VerbAction> listeVerbAction = new HashSet<>();
+
                 for (Method methode : liste_methode) {
                     if (methode.isAnnotationPresent(URL.class)) {
                         String url = methode.getAnnotation(URL.class).value();
@@ -161,22 +184,53 @@ public class FrontController extends HttpServlet {
                                 if(methode.isAnnotationPresent(Post.class)){
 
                                     // Ajouter l'URL à la map
-                                    mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Post"));
+                                    mappinge.put(url+"1", new Mapping(classe_name.getName(), methode.getName() , "Post"));
+                                    VerbAction verbAction = new VerbAction(methode.getName(), "Post");
+                                    listeVerbAction.add(verbAction);
 
                                 }else if(methode.isAnnotationPresent(Get.class)) {
                                     // Ajouter l'URL à la map
                                     mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Get"));
+                                    VerbAction verbAction = new VerbAction(methode.getName(), "Get");
+                                    listeVerbAction.add(verbAction);
 
                                 } else {
                                     // Ajouter l'URL à la map
                                     mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Get"));
+                                    VerbAction verbAction = new VerbAction(methode.getName(), "Get");
+                                    listeVerbAction.add(verbAction);
                                 }
+                                
                             } else {
-                       
-                                // Afficher en terminal
-                                System.err.println("Duplicate URL detected: " + url);
-                                // Lancer une exception pour la gestion interne
-                                throw new UrlAlreadyExistsException("Duplicate URL detected: " + url);
+
+                                //String verbe_definy ="";
+                                if(methode.isAnnotationPresent(Post.class)){
+                                    VerbAction verbAction = new VerbAction(methode.getName(), "Post");
+                                    for (VerbAction existingAction : listeVerbAction) {
+                                        //System.out.println("mitovy v" + existingAction.equals(verbAction));
+                                        if (existingAction.equals(verbAction)) {
+                                            throw new UrlAlreadyExistsException("Faute : Action verbale déjà existante pour la méthode " + methode.getName() + " avec le verbe Post");
+                                        }
+                                        mappinge.put(url+"1", new Mapping(classe_name.getName(), methode.getName() , "Post"));
+                                    }
+
+                                } else if(methode.isAnnotationPresent(Get.class)){
+                                    VerbAction verbAction = new VerbAction(methode.getName(), "Get");
+                                    for (VerbAction existingAction : listeVerbAction) {
+                                        //System.out.println("mitovy v" + existingAction.equals(verbAction));
+                                        if (existingAction.equals(verbAction)) {
+                                            throw new UrlAlreadyExistsException("Faute : Action verbale déjà existante pour la méthode " + methode.getName() + " avec le verbe Get");
+                                        }
+                                        mappinge.put(url, new Mapping(classe_name.getName(), methode.getName() , "Get"));
+                                    }
+                                } 
+
+                                // else {
+                                //     // Afficher en terminal
+                                //     System.err.println("Duplicate URL detected: " + url);
+                                //     // Lancer une exception pour la gestion interne
+                                //     throw new UrlAlreadyExistsException("Duplicate URL detected: " + url + "et meme verbe" + );
+                                // } 
                             }
                     }
                 }
