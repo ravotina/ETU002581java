@@ -16,7 +16,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
+import fonction.MyFile;
 import fonction.MySession;
+
+import java.nio.file.*;
+import jakarta.servlet.http.Part;
+
+import java.util.Base64;
+
+
+import jakarta.servlet.http.HttpServlet;
+
+
+
 
 public class Utils {
 
@@ -144,7 +156,11 @@ public class Utils {
 
 
     public static Object executeFontion2(Map<String, String> paramMap, String nomClasse, String nomMethode , HttpServletRequest req) throws Exception {
+
         try {
+            // Utilisation de Part pour gérer le téléchargement
+           
+
             Class<?> classe = Class.forName(nomClasse);
 
             Object instance = classe.getDeclaredConstructor().newInstance();
@@ -192,21 +208,44 @@ public class Utils {
 
                     if (paramAnnotation != null) {
                         String paramNameanotation = paramAnnotation.name();
-
+                        
                         Object paramInstance = paramType.getDeclaredConstructor().newInstance();
                         Field[] fields = paramType.getDeclaredFields();
                         for (Field field : fields) {
-                            String paramName = field.getName();
-                            if (paramMap.containsKey(paramNameanotation+"."+paramName)) {
-                                System.out.println();
-                                Method setMethod = findSetterMethod(paramType, field);
 
-                                if (setMethod != null) {
-                                    setMethod.invoke(paramInstance, convertParameterValue(paramMap.get(paramNameanotation+"."+paramName), field.getType()));
+                            if(field.getType()==MyFile.class){
+                                //System.out.println("MyFile.class = "+paramMap.get(paramNameanotation+"."+paramName));
+                                String paramName = field.getName();
+                                Part filePart = req.getPart(paramNameanotation+"."+paramName);
 
-                                    System.out.println("==========================");
-                                    System.out.println(setMethod.getName());
-                                    System.out.println("==========================");
+                                if(filePart!=null){
+                                    System.out.println(filePart);
+                                    MyFile myFile = new MyFile();
+                                    myFile.setFileName(filePart.getSubmittedFileName());
+                                    myFile.setFileContent(filePart.getInputStream().readAllBytes());
+                                    Method setMethod = findSetterMethod(paramType, field);
+                                    if (setMethod != null) {
+                                        System.out.println("ato zao atao zao ato zao atao zao  ato zao atao zao ato zao atao zao ");
+                                        setMethod.invoke(paramInstance, myFile);
+                                    }
+                                }
+                                
+                            }
+                            else
+                            {
+                                String paramName = field.getName();
+                                if (paramMap.containsKey(paramNameanotation+"."+paramName)) {
+                                    System.out.println();
+                                    Method setMethod = findSetterMethod(paramType, field);
+                                    
+                                    if (setMethod != null) {
+    
+                                        setMethod.invoke(paramInstance, convertParameterValue(paramMap.get(paramNameanotation+"."+paramName), field.getType()));
+                                        
+                                        System.out.println("==========================");
+                                        System.out.println(setMethod.getName());
+                                        System.out.println("==========================");
+                                    }
                                 }
                             }
                         }
@@ -250,7 +289,29 @@ public class Utils {
                     if (paramAnnotation != null) {
                         String paramName = paramAnnotation.name();
                         String paramValue = paramMap.get(paramName);
-                        parameterValues.add(convertParameterValue(paramValue, parameters[i].getType()));
+                        System.out.println("nom param :"+paramName);
+                        System.out.println("nom param :"+paramValue);
+                        if(parameters[i].getType() == MyFile.class){
+
+                            Part filePart = req.getPart(paramName); // "sary" doit correspondre au nom du champ dans le formulaire
+                            System.out.println("=================filePart=====================");
+                            System.out.println(filePart);
+                            System.out.println("======================================");
+
+                            if(filePart != null){
+                                System.out.println("ato m execution ilay file ilay fila ilay file 2222222222221111111111111111112222222222222");
+
+                                MyFile myFile = new MyFile();
+                                myFile.setFileName(filePart.getSubmittedFileName());
+                                myFile.setFileContent(filePart.getInputStream().readAllBytes());
+
+                                parameterValues.add(myFile);
+                            }
+                        } else {
+                            parameterValues.add(convertParameterValue(paramValue, parameters[i].getType()));
+                        }
+                        
+                        
                     } else {
                         //String paramValue = paramMap.get(parameterNames[i]);
                         //parameterValues.add(convertParameterValue(paramValue, parameters[i].getType()));
@@ -306,6 +367,16 @@ private static Object convertParameterValue(String value, Class<?> type) {
         return Double.parseDouble(value);
     } else if (type == Boolean.class || type == boolean.class) {
         return Boolean.parseBoolean(value);
+    } else if(type == MyFile.class){
+        try {
+             // Assuming the input string is a file path
+             File file = new File(value);
+             byte[] fileContent = Files.readAllBytes(file.toPath());
+             return new MyFile(fileContent, file.getName());
+         } catch (IOException e) {
+             throw new IllegalArgumentException("Impossible de convertir en MyFile. Fichier introuvable ou non lisible : " + value, e);
+         }
+    
     } else {
         throw new IllegalArgumentException("Type de paramètre non supporté : " + type.getName());
         //return null;
@@ -320,8 +391,10 @@ private static int test_type( Class<?> type) {
     } else if (type == Double.class || type == double.class) {
         return 1;
     } else if (type == Boolean.class || type == boolean.class) {
+        return 1;  
+    } else if (type == MyFile.class) {
         return 1;
-    } else {
+    }else {
         return 0;
     }
 }
