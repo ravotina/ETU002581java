@@ -23,7 +23,12 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Set; 
 import java.util.HashSet;
-
+import jakarta.servlet.annotation.MultipartConfig;
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
+    maxFileSize = 1024 * 1024 * 50,       // 50MB
+    maxRequestSize = 1024 * 1024 * 100    // 100MB
+)
 public class FrontController extends HttpServlet {
 
     HashMap<String, Mapping> mappinge = new HashMap<>();
@@ -73,13 +78,23 @@ public class FrontController extends HttpServlet {
                         String[] keyValue = param.split("=");
                         if (keyValue.length == 2) {
                             paramMap.put(keyValue[0], keyValue[1]);
+                            System.out.println("Clé: " + keyValue[0] + ", Valeur: " + keyValue[1]);
                         }
                     }
                 }
             } else if ("POST".equalsIgnoreCase(request.getMethod())) {
                 // Extraire les paramètres de la requête POST en tant que Map
                 metho_arriver = "Post";
-                request.getParameterMap().forEach((key, values) -> paramMap.put(key, values[0]));
+
+                // Extraire et afficher les paramètres du POST
+                request.getParameterMap().forEach((key, values) -> {
+                    // Affichage des clés et valeurs dans la console
+                    System.out.println("Clé: " + key + ", Valeur: " + values[0]);
+                    
+                    // Ajout dans la Map
+                    paramMap.put(key, values[0]);
+                });
+
                 urlAnoter = urlAnoter+"1";
             }
 
@@ -97,14 +112,14 @@ public class FrontController extends HttpServlet {
                     //}
                // }
 
-                if(mappinge.get(urlAnoter).getVerbe() == metho_arriver){
+                if(mappinge.get(urlAnoter).getVerbe().equals(metho_arriver)){
                     Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                     if (Utils.testReturnType(resultat) == 1) {
                         try {
                             ModelView result_model_view = (ModelView) resultat;
                             for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
                                 request.setAttribute(entry.getKey(), entry.getValue());
-                                if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
+                                if(!Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry).equals("tsia")){
                                     out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
                                     signe = 1;
                                 }
