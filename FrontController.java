@@ -3,12 +3,16 @@ package controlleur;
 
 import fonction.*;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 //import com.google.gson.*;
 
@@ -23,7 +27,12 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Set; 
 import java.util.HashSet;
-
+import jakarta.servlet.annotation.MultipartConfig;
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
+    maxFileSize = 1024 * 1024 * 50,       // 50MB
+    maxRequestSize = 1024 * 1024 * 100    // 100MB
+)
 public class FrontController extends HttpServlet {
 
     HashMap<String, Mapping> mappinge = new HashMap<>();
@@ -39,6 +48,19 @@ public class FrontController extends HttpServlet {
     public class UrlAlreadyExistsException extends Exception {
         public UrlAlreadyExistsException(String message) {
             super(message);
+        }
+    }
+
+    private void logErrorToFile(String message, Exception e) {
+        try (FileWriter fw = new FileWriter("errors.log", true);
+             PrintWriter pw = new PrintWriter(fw)) {
+            pw.println("Error: " + message);
+            if (e != null) {
+                e.printStackTrace(pw);
+            }
+            pw.println("--------------------------------------------------");
+        } catch (IOException ioEx) {
+            System.err.println("Could not write to errors.log: " + ioEx.getMessage());
         }
     }
 
@@ -73,13 +95,23 @@ public class FrontController extends HttpServlet {
                         String[] keyValue = param.split("=");
                         if (keyValue.length == 2) {
                             paramMap.put(keyValue[0], keyValue[1]);
+                            System.out.println("Clé: " + keyValue[0] + ", Valeur: " + keyValue[1]);
                         }
                     }
                 }
             } else if ("POST".equalsIgnoreCase(request.getMethod())) {
                 // Extraire les paramètres de la requête POST en tant que Map
                 metho_arriver = "Post";
-                request.getParameterMap().forEach((key, values) -> paramMap.put(key, values[0]));
+
+                // Extraire et afficher les paramètres du POST
+                request.getParameterMap().forEach((key, values) -> {
+                    // Affichage des clés et valeurs dans la console
+                    System.out.println("Clé: " + key + ", Valeur: " + values[0]);
+                    
+                    // Ajout dans la Map
+                    paramMap.put(key, values[0]);
+                });
+
                 urlAnoter = urlAnoter+"1";
             }
 
@@ -97,14 +129,14 @@ public class FrontController extends HttpServlet {
                     //}
                // }
 
-                if(mappinge.get(urlAnoter).getVerbe() == metho_arriver){
+                if(mappinge.get(urlAnoter).getVerbe().equals(metho_arriver)){
                     Object resultat = Utils.executeFontion2(paramMap, mappinge.get(urlAnoter).getClasse_name(), mappinge.get(urlAnoter).getMethodName() , request);
                     if (Utils.testReturnType(resultat) == 1) {
                         try {
                             ModelView result_model_view = (ModelView) resultat;
                             for (HashMap.Entry<String, Object> entry : result_model_view.getData().entrySet()) {
                                 request.setAttribute(entry.getKey(), entry.getValue());
-                                if(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry)!="tsia"){
+                                if(!Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry).equals("tsia")){
                                     out.print(Utils.convertirEnJson(mappinge.get(urlAnoter).getClasse_name() , mappinge.get(urlAnoter).getMethodName() , entry));
                                     signe = 1;
                                 }
@@ -141,20 +173,23 @@ public class FrontController extends HttpServlet {
                     out.println("</br>");
                     out.println("Methode du Formulaire : ");
                     out.println(metho_arriver);
+
+                    String erreurMessage = "EURREUR<br>Methode du fonction : " + mappinge.get(urlAnoter).getVerbe() 
+                        + "<br><br>Methode du Formulaire : " + metho_arriver;
+
+                    handleMethodMismatchError(out, urlAnoter, metho_arriver);
                 }
 
                 out.print("</br>");
             } catch (UrlAlreadyExistsException e) {
                 out.println("<p style='color:red;'>Error: " + e.getMessage() + "</p>");
-                System.err.println(e.getMessage());
-                System.out.println("UrlAlreadyExistsException erreur");
+                log("UrlAlreadyExistsException erreur: " + e.getMessage(), e);
+                logErrorToFile("UrlAlreadyExistsException", e); // Enregistrement dans le fichier
                 e.printStackTrace(System.err);
             } catch (Exception e) {
-                log("Error executing function", e);
-                out.println(e.getMessage());
-                System.err.println(e.getMessage());
-                out.println("URL non reconnue: " + chemin_url);
-                System.out.println("Exception erreur");
+                log("Exception during function execution: " + e.getMessage(), e);
+                out.println("URL non reconnue: " + request.getRequestURL().toString());
+                logErrorToFile("Exception during function execution", e); // Enregistrement dans le fichier
                 e.printStackTrace(System.err);
             }
         } finally {
@@ -162,6 +197,14 @@ public class FrontController extends HttpServlet {
                 out.close();
             }
         }
+    }
+
+
+    private void handleMethodMismatchError(PrintWriter out, String urlAnoter, String metho_arriver) throws IOException {
+        String erreurMessage = "EURREUR<br>Methode du fonction : " + mappinge.get(urlAnoter).getVerbe()
+                + "<br><br>Methode du Formulaire : " + metho_arriver;
+        out.print(erreurMessage);
+        logErrorToFile("UrlAlreadyExistsException", new Exception(erreurMessage));
     }
 
     @Override
@@ -236,15 +279,11 @@ public class FrontController extends HttpServlet {
                 }
             }
         } catch (UrlAlreadyExistsException e) {
-            // Gérer l'exception de doublon d'URL sans la relancer
             log("Duplicate URL detected: " + e.getMessage());
-            System.err.println("Duplicate URL detected: " + e.getMessage());
-            e.printStackTrace(System.err);
+            logErrorToFile("Duplicate URL detected", e); // Enregistrement dans le fichier
         } catch (Exception e) {
-            // Gérer d'autres exceptions
-            log("Error during initialization: " + e.getMessage(), e);
-            System.err.println("Error during initialization: " + e.getMessage());
-            e.printStackTrace(System.err);
+            log("Initialization error: " + e.getMessage(), e);
+            logErrorToFile("Initialization error", e); // Enregistrement dans le fichier
             throw new ServletException(e);
         }
     }
