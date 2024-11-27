@@ -3,16 +3,12 @@ package controlleur;
 
 import fonction.*;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import java.io.FileWriter;
-import java.io.PrintWriter;
 
 //import com.google.gson.*;
 
@@ -48,19 +44,6 @@ public class FrontController extends HttpServlet {
     public class UrlAlreadyExistsException extends Exception {
         public UrlAlreadyExistsException(String message) {
             super(message);
-        }
-    }
-
-    private void logErrorToFile(String message, Exception e) {
-        try (FileWriter fw = new FileWriter("errors.log", true);
-             PrintWriter pw = new PrintWriter(fw)) {
-            pw.println("Error: " + message);
-            if (e != null) {
-                e.printStackTrace(pw);
-            }
-            pw.println("--------------------------------------------------");
-        } catch (IOException ioEx) {
-            System.err.println("Could not write to errors.log: " + ioEx.getMessage());
         }
     }
 
@@ -173,23 +156,25 @@ public class FrontController extends HttpServlet {
                     out.println("</br>");
                     out.println("Methode du Formulaire : ");
                     out.println(metho_arriver);
-
-                    String erreurMessage = "EURREUR<br>Methode du fonction : " + mappinge.get(urlAnoter).getVerbe() 
-                        + "<br><br>Methode du Formulaire : " + metho_arriver;
-
-                    handleMethodMismatchError(out, urlAnoter, metho_arriver);
                 }
 
                 out.print("</br>");
             } catch (UrlAlreadyExistsException e) {
                 out.println("<p style='color:red;'>Error: " + e.getMessage() + "</p>");
-                log("UrlAlreadyExistsException erreur: " + e.getMessage(), e);
-                logErrorToFile("UrlAlreadyExistsException", e); // Enregistrement dans le fichier
+                System.err.println(e.getMessage());
+                System.out.println("UrlAlreadyExistsException erreur");
                 e.printStackTrace(System.err);
-            } catch (Exception e) {
-                log("Exception during function execution: " + e.getMessage(), e);
-                out.println("URL non reconnue: " + request.getRequestURL().toString());
-                logErrorToFile("Exception during function execution", e); // Enregistrement dans le fichier
+            } catch (DetailedValidationException e){
+                out.println(e);
+                e.printStackTrace(System.err);
+            }
+
+            catch (Exception e) {
+                log("Error executing function", e);
+                out.println(e.getMessage());
+                System.err.println(e.getMessage());
+                out.println("URL non reconnue: " + chemin_url);
+                System.out.println("Exception erreur");
                 e.printStackTrace(System.err);
             }
         } finally {
@@ -197,14 +182,6 @@ public class FrontController extends HttpServlet {
                 out.close();
             }
         }
-    }
-
-
-    private void handleMethodMismatchError(PrintWriter out, String urlAnoter, String metho_arriver) throws IOException {
-        String erreurMessage = "EURREUR<br>Methode du fonction : " + mappinge.get(urlAnoter).getVerbe()
-                + "<br><br>Methode du Formulaire : " + metho_arriver;
-        out.print(erreurMessage);
-        logErrorToFile("UrlAlreadyExistsException", new Exception(erreurMessage));
     }
 
     @Override
@@ -279,11 +256,15 @@ public class FrontController extends HttpServlet {
                 }
             }
         } catch (UrlAlreadyExistsException e) {
+            // Gérer l'exception de doublon d'URL sans la relancer
             log("Duplicate URL detected: " + e.getMessage());
-            logErrorToFile("Duplicate URL detected", e); // Enregistrement dans le fichier
+            System.err.println("Duplicate URL detected: " + e.getMessage());
+            e.printStackTrace(System.err);
         } catch (Exception e) {
-            log("Initialization error: " + e.getMessage(), e);
-            logErrorToFile("Initialization error", e); // Enregistrement dans le fichier
+            // Gérer d'autres exceptions
+            log("Error during initialization: " + e.getMessage(), e);
+            System.err.println("Error during initialization: " + e.getMessage());
+            e.printStackTrace(System.err);
             throw new ServletException(e);
         }
     }

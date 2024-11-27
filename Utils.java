@@ -2,6 +2,7 @@ package fonction;
 
 import java.io.File;
 import java.io.IOException;
+//import java.lang.ModuleLayer.Controller;
 import java.lang.reflect.*;
 import java.net.URL;
 import java.util.ArrayList;
@@ -18,6 +19,9 @@ import com.thoughtworks.paranamer.Paranamer;
 
 import fonction.MyFile;
 import fonction.MySession;
+
+import fonction.DetailedValidationException;
+import fonction.Controller;
 
 import java.nio.file.*;
 import jakarta.servlet.http.Part;
@@ -325,14 +329,17 @@ public class Utils {
             System.out.println("Paramètres pour la méthode : " + targetMethod.getName());
             for (Object paramValue : parameterValues) {
                 System.out.println(paramValue);
+                validation_donner_object(paramValue);
             }
 
+            
             Object result = targetMethod.invoke(instance, parameterValues.toArray());
+           
             return result;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return "Erreur lors de l'exécution de la méthode : " + e.getMessage();
+            // e.printStackTrace();
+            throw new Exception("Erreur lors de l'exécution de la méthode : " + e.getMessage());
         }
     }
 
@@ -440,5 +447,41 @@ private static int test_type( Class<?> type) {
         }
         
         return valeur;
+    }
+
+
+    public static void validation_donner_object(Object obj) throws DetailedValidationException {
+        Class<?> objClass = obj.getClass();
+        for (Field field : objClass.getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(obj);
+                // Validation pour @Required
+                if (field.isAnnotationPresent(Required.class)) {
+                    if (value == null || value.toString().isEmpty()) {
+                        Required required = field.getAnnotation(Required.class);
+                        throw new DetailedValidationException(field.getName(), value, required.message());
+                    }
+                }
+                // Validation pour @Numerique
+                if (field.isAnnotationPresent(Numerique.class)) {
+                    if (value instanceof Number) {
+                        Numerique numerique = field.getAnnotation(Numerique.class);
+                        double numericValue = ((Number) value).doubleValue();
+                        if (numericValue < numerique.min() || numericValue > numerique.max()) {
+                            throw new DetailedValidationException(
+                                field.getName(),
+                                value,
+                                numerique.message().replace("{min}", String.valueOf(numerique.min()))
+                                                 .replace("{max}", String.valueOf(numerique.max())));
+                        }
+                    } else {
+                        throw new DetailedValidationException(field.getName(), value, "Field is not numeric.");
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                throw new DetailedValidationException(field.getName(), "N/A", "Could not access field.");
+            }
+        }
     }
 }
