@@ -329,7 +329,8 @@ public class Utils {
             System.out.println("Paramètres pour la méthode : " + targetMethod.getName());
             for (Object paramValue : parameterValues) {
                 System.out.println(paramValue);
-                validation_donner_object(paramValue);
+                //validation_donner_object(paramValue , req);
+                validation_donner_object_recuperation_eurreur(paramValue , req);
             }
 
             
@@ -337,7 +338,11 @@ public class Utils {
            
             return result;
 
-        } catch (Exception e) {
+        }catch(DetailedValidationException e){
+            throw new DetailedValidationException("signe", "eurror", "eurror Formulaire");
+        }
+        
+        catch (Exception e) {
             // e.printStackTrace();
             throw new Exception("Erreur lors de l'exécution de la méthode : " + e.getMessage());
         }
@@ -450,7 +455,39 @@ private static int test_type( Class<?> type) {
     }
 
 
-    public static void validation_donner_object(Object obj) throws DetailedValidationException {
+
+
+    public static String pageeurreur(String nomClasse, String nomMethode ) {
+
+        String valeur = null;
+        try {
+
+            // Création d'un objet Gson
+            Class<?> classe = Class.forName(nomClasse);
+
+            Method[] methods = classe.getDeclaredMethods();
+                Method targetMethod = null;
+
+                for (Method method : methods) {
+                    if (method.getName().equals(nomMethode)) {
+                        if(method.isAnnotationPresent(PageEurrer.class)){
+                            PageEurrer pageurteurrer =  method.getAnnotation(PageEurrer.class);
+                            valeur = pageurteurrer.value();
+                        } else {
+                            valeur =  null;
+                        }
+                    }
+            }
+            
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        
+        return valeur;
+    }
+
+
+    public static void validation_donner_object(Object obj , HttpServletRequest req) throws DetailedValidationException {
         Class<?> objClass = obj.getClass();
         for (Field field : objClass.getDeclaredFields()) {
             field.setAccessible(true);
@@ -484,4 +521,57 @@ private static int test_type( Class<?> type) {
             }
         }
     }
+
+
+    public static void validation_donner_object_recuperation_eurreur(Object obj, HttpServletRequest req) throws DetailedValidationException {
+        Class<?> objClass = obj.getClass();
+        boolean hasErrors = false;
+    
+        for (Field field : objClass.getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(obj);
+    
+                // Validation pour @Required
+                if (field.isAnnotationPresent(Required.class)) {
+                    if (value == null || value.toString().isEmpty()) {
+                        Required required = field.getAnnotation(Required.class);
+                        String errorMessage = required.message();
+                        req.setAttribute("error_" + field.getName(), errorMessage);
+                        req.setAttribute("valiny_" + field.getName(), "null");
+                        hasErrors = true;
+                    }
+                }
+    
+                // Validation pour @Numerique
+                if (field.isAnnotationPresent(Numerique.class)) {
+                    if (value instanceof Number) {
+                        Numerique numerique = field.getAnnotation(Numerique.class);
+                        double numericValue = ((Number) value).doubleValue();
+                        if (numericValue < numerique.min() || numericValue > numerique.max()) {
+                            String errorMessage = numerique.message()
+                                    .replace("{min}", String.valueOf(numerique.min()))
+                                    .replace("{max}", String.valueOf(numerique.max()));
+                            req.setAttribute("error_" + field.getName(), errorMessage);
+                            req.setAttribute("valiny_" + field.getName(), value.toString());
+                            hasErrors = true;
+                        }
+                    } else {
+                        req.setAttribute("error_" + field.getName(), "Field is not numeric.");
+                        req.setAttribute("valiny_" + field.getName(),  value.toString());
+                        hasErrors = true;
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                req.setAttribute("error_" + field.getName(), "Could not access field.");
+                hasErrors = true;
+            }
+        }
+    
+        // Si des erreurs sont détectées, lever une exception avec un message général
+        if (hasErrors) {
+            throw new DetailedValidationException("signe", "eurror", "eurror Formulaire");
+        }
+    }
+    
 }
