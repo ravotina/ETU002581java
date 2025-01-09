@@ -5,6 +5,7 @@ public class DetailedValidationException extends Exception {
     private final Object invalidValue;
     private final String errorMessage;
 
+    // Constructeur avec les détails de l'erreur
     public DetailedValidationException(String fieldName, Object invalidValue, String errorMessage) {
         super(String.format("Validation error in field '%s': %s (Invalid value: %s)",
                 fieldName, errorMessage, invalidValue));
@@ -13,6 +14,7 @@ public class DetailedValidationException extends Exception {
         this.errorMessage = errorMessage;
     }
 
+    // Accesseurs pour les attributs
     public String getFieldName() {
         return fieldName;
     }
@@ -25,6 +27,7 @@ public class DetailedValidationException extends Exception {
         return errorMessage;
     }
 
+    // Méthode pour obtenir un message d'erreur personnalisé
     @Override
     public String getMessage() {
         return String.format("Validation error in field '%s': %s (Invalid value: %s)",
