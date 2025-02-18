@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -157,6 +158,20 @@ public class Utils {
     }
 
 
+    private static boolean isUserAuthorized(String [] classRoles, String[] requiredRoles) { 
+        List<String> userRoles = Arrays.asList(requiredRoles);
+        if (userRoles == null) { 
+            return false; // Aucun rôle trouvé 
+        } 
+        for (String role : classRoles) { 
+            if (userRoles.contains(role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 
 
     public static Object executeFontion2(Map<String, String> paramMap, String nomClasse, String nomMethode , HttpServletRequest req) throws Exception {
@@ -198,6 +213,19 @@ public class Utils {
 
             System.out.println("Methode:");
             System.out.println(targetMethod);
+
+            if (targetMethod.isAnnotationPresent(RequiredRoles.class)) {
+                Method getMethod = classe.getMethod("getRoles");
+                RequiredRoles roleRequired = targetMethod.getAnnotation(RequiredRoles.class); 
+                String [] requiredRoles = roleRequired.roles();
+                String [] classroles = (String[])getMethod.invoke(instance);
+                boolean authorized = isUserAuthorized(classroles, requiredRoles);
+                if (!authorized) {
+                    throw new SecurityException("Utilisateur non autorisé pour utiliser la méthode " + targetMethod.getName()); 
+                }
+            }
+
+
             String[] parameterNames = paranamer.lookupParameterNames(targetMethod);
 
 
